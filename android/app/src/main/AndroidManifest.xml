@@ -1,7 +1,7 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.yorijori.yorijori">
    <application
-        android:label="yorijori"
+        android:label="모두의 레시피"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

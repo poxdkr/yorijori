@@ -1,7 +1,51 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:card_swiper/card_swiper.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yorijori/model/recipe_model.dart';
+import 'dart:convert';
+
+//리스트에 추가가 되어있는지 아닌지 확인
+var added = false;
+
+void checkAdded(String RCP_SEQ) async {
+  SharedPreferences pref = await SharedPreferences.getInstance();
+  String? myRcp_str = pref.getString('myRcp');
+  List<dynamic> myRecipe = json.decode(myRcp_str!);
+  if(myRecipe.contains(RCP_SEQ)){
+    added = true;
+  }else{
+    added = false;
+  }
+}
+
+
+void updateMyrecipe(String RCP_SEQ) async {
+  //uid확인
+  SharedPreferences pref = await SharedPreferences.getInstance();
+  String? myRcp_str = pref.getString('myRcp');
+
+  if(myRcp_str == null){
+    //리스트에 처음으로 추가됨.
+    List<String> myRecipe = [RCP_SEQ];
+    String jsonRecipe = json.encode(myRecipe);
+    pref.setString('myRcp', jsonRecipe);
+    print('myRcp::::>${pref.getString('myRcp')}');
+    checkAdded(RCP_SEQ);
+  }else{
+    String? jsonRecipe = pref.getString('myRcp');
+    List<dynamic> myRecipe = json.decode(jsonRecipe!);
+    if(myRecipe.contains(RCP_SEQ)){
+      //이미 등록되어 있음.
+      checkAdded(RCP_SEQ);
+    }else{
+      //리스트에 추가하기
+      myRecipe.add(RCP_SEQ);
+      pref.setString('myRcp', jsonEncode(myRecipe));
+      checkAdded(RCP_SEQ);
+    }
+  }
+}
 
 class RecipeDetail extends StatefulWidget {
 
@@ -16,9 +60,17 @@ class RecipeDetail extends StatefulWidget {
 }
 
 class _RecipeDetailState extends State<RecipeDetail> {
+  //조회수 업데이트 하기
+
+
 
   @override
   Widget build(BuildContext context) {
+
+    //추가가 이미 되어 있는지 확인
+    checkAdded(widget.recipe.RCP_SEQ);
+    print("seq :::??? ${widget.recipe.RCP_SEQ}");
+    print("added :::??? ${added}");
 
     List<Widget> detailWidgetList = [];
 
@@ -115,17 +167,24 @@ class _RecipeDetailState extends State<RecipeDetail> {
               margin : EdgeInsets.fromLTRB(0, 10, 0, 10),
               padding: EdgeInsets.all(10),
               color: Colors.amber.shade400,
-              child: Text('조리방법',style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),),
+              child: Text('준비물',style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),),
             ),
             Row(
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
                 Container(
-                  padding: EdgeInsets.fromLTRB(0, 10, 0, 10),
+                  padding: EdgeInsets.all(10),
                   width: MediaQuery.of(context).size.width*0.9,
                   child: Text('필요재료 : ${widget.recipe.RCP_PARTS_DTLS} ', style:TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black87)),
                 )
               ],
+            ),
+            Container(
+              width: MediaQuery.of(context).size.width,
+              margin : EdgeInsets.fromLTRB(0, 10, 0, 10),
+              padding: EdgeInsets.all(10),
+              color: Colors.amber.shade400,
+              child: Text('조리방법',style: TextStyle(color: Colors.black, fontSize: 15, fontWeight: FontWeight.bold),),
             ),
             if(widget.recipe.MANUAL01.isNotEmpty) ListTile(
               title: Text(widget.recipe.MANUAL01, style : TextStyle(color: Colors.black87,fontSize: 13)),
@@ -277,16 +336,27 @@ class _RecipeDetailState extends State<RecipeDetail> {
       Container(
         padding : EdgeInsets.all(15),
         child: ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.amber),
+          style: ElevatedButton.styleFrom(
+              backgroundColor: added == false ? Colors.amber : Colors.grey
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.add, size: 20, color : Colors.white),
+              Icon(
+                  added == false ? Icons.add : Icons.check,
+                  size: 20, color : Colors.white),
               SizedBox(width: 10,),
-              Text('내 레시피에 저장하기',style: TextStyle(fontSize: 14, color: Colors.white),)
+              Text(
+                added == false ? '내 레시피에 저장하기' : '저장완료!',
+                style: TextStyle(fontSize: 14, color: Colors.white),)
             ],
           ),
-          onPressed: (){},
+          onPressed: (){
+            setState(() {
+              updateMyrecipe(widget.recipe.RCP_SEQ);
+            });
+
+          },
         ),
       )
     );
